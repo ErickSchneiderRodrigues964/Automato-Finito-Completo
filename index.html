@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Autômato Finito</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <h1>Autômato Finito</h1>
+
+  <section>
+    <h2>1. Montar o Autômato</h2>
+
+    <label>Estados (separados por vírgula):
+      <input type="text" id="estados" />
+    </label>
+
+    <label>Estado inicial:
+      <input type="text" id="inicial"  />
+    </label>
+
+    <label>Estados finais (separados por vírgula):
+      <input type="text" id="finais"  />
+    </label>
+
+    <label>Transições (uma por linha, formato: <code>estado,símbolo,destino</code>):
+      <textarea id="transicoes" rows="6"></textarea>
+    </label>
+
+    <button onclick="gerarAF()">Gerar Autômato</button>
+  </section>
+
+
+  <section id="secao-af" hidden>
+    <h2>2. Autômato</h2>
+    <canvas id="canvas" width="700" height="320"></canvas>
+    <p class="legenda">⬤ normal &nbsp;|&nbsp; ◎ final &nbsp;|&nbsp; → inicial &nbsp;|&nbsp; arraste os estados</p>
+  </section>
+
+  <section id="secao-teste" hidden>
+    <h2>3. Testar Palavra</h2>
+
+    <label>Palavra:
+      <input type="text" id="palavra" />
+    </label>
+
+    <button onclick="testar()">Testar</button>
+
+    <div id="resultado"></div>
+    <div id="trace"></div>
+  </section>
+
+  <script src="automato.js"></script>
+
+</body>
+</html>
