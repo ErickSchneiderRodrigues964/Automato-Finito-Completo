@@ -1,16 +1,17 @@
 body {
   font-family: Arial, sans-serif;
-  max-width: 750px;
+  max-width: 850px;
   margin: 30px auto;
   padding: 0 16px;
   background: #f5f5f5;
   color: #222;
 }
 
-h1 { text-align: center; 
-    margin-bottom: 50px;
-    color: #3f51b5; 
-  }
+h1 { 
+  text-align: center; 
+  margin-bottom: 40px;
+  color: #3f51b5; 
+}
 
 h2 { margin-bottom: 12px; color: #333; }
 
@@ -24,15 +25,15 @@ section {
 
 label {
   display: block;
-  margin-bottom: 12px;
+  margin-bottom: 15px;
   font-size: 14px;
 }
 
 input[type="text"], textarea {
   display: block;
   width: 100%;
-  margin-top: 4px;
-  padding: 8px;
+  margin-top: 6px;
+  padding: 10px;
   font-size: 14px;
   font-family: monospace;
   border: 1px solid #ccc;
@@ -43,45 +44,108 @@ input[type="text"], textarea {
 textarea { resize: vertical; }
 
 button {
-  padding: 8px 20px;
+  padding: 10px 24px;
   background: #3f51b5;
   color: white;
   border: none;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 15px;
   cursor: pointer;
   margin-top: 4px;
+  font-weight: bold;
 }
 
 button:hover { background: #303f9f; }
 
 code {
   background: #eef;
-  padding: 1px 5px;
-  border-radius: 3px;
+  padding: 2px 6px;
+  border-radius: 4px;
   font-size: 13px;
 }
 
+.visual-container {
+  display: flex;
+  gap: 15px;
+  align-items: flex-start;
+}
+
 canvas {
-  display: block;
+  flex: 1;
   border: 1px solid #ddd;
   border-radius: 6px;
   background: #fafafa;
   cursor: grab;
 }
 
+/* --- Estilos da Pilha --- */
+#pilha-container {
+  width: 140px;
+  background: #fdfdfd;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 10px;
+  min-height: 250px;
+  display: flex;
+  flex-direction: column;
+}
+
+#pilha-container h3 {
+  font-size: 14px;
+  text-align: center;
+  margin: 0 0 10px 0;
+  color: #555;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 5px;
+}
+
+#pilha-visual {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  flex: 1;
+  border-left: 3px solid #3f51b5;
+  border-right: 3px solid #3f51b5;
+  border-bottom: 3px solid #3f51b5;
+  padding: 5px;
+  background: #fafafa;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+
+.pilha-item {
+  background: #e8eaf6;
+  border: 1px solid #c5cae9;
+  text-align: center;
+  padding: 8px 0;
+  margin-top: 4px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-weight: bold;
+  color: #1a237e;
+  animation: popIn 0.2s ease-out;
+}
+
+.pilha-item.fundo { background: #cfd8dc; border-color: #b0bec5; color: #37474f;}
+.pilha-item.vazio { background: transparent; border: 1px dashed #ccc; color: #999; }
+
+@keyframes popIn {
+  0% { transform: translateY(-10px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
 .legenda {
   font-size: 12px;
   color: #888;
-  margin-top: 6px;
+  margin-top: 10px;
 }
 
 #resultado {
-  margin-top: 14px;
-  padding: 10px 14px;
+  margin-top: 15px;
+  padding: 12px 16px;
   border-radius: 6px;
   font-weight: bold;
-  font-size: 15px;
+  font-size: 16px;
   display: none;
 }
 
@@ -100,25 +164,23 @@ canvas {
 }
 
 #trace {
-  margin-top: 10px;
+  margin-top: 15px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
-  font-size: 13px;
+  gap: 6px;
+  font-size: 14px;
 }
 
 .passo {
   background: #e8eaf6;
   color: #1a237e;
   border: 1px solid #c5cae9;
-  padding: 3px 9px;
+  padding: 4px 10px;
   border-radius: 5px;
   font-family: monospace;
 }
 
 .passo.atual   { background: #3f51b5; color: #fff; }
 .passo.aceito  { background: #2e7d32; color: #fff; }
-.passo.erro    { background: #c62828; color: #fff; }
-
-.seta { color: #999; font-size: 12px; }
+.seta { color: #999; font-size: 13px; font-weight: bold; }
