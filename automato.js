@@ -1,26 +1,25 @@
-// Dados do autômato atual
 let af = null;
-
-// Nós para o canvas (posição de cada estado)
 let nos = [];
 let arrastando = null, offX = 0, offY = 0;
 
-// ─── Gerar AF ────────────────────────────────────────────
+// ─── Gerar AF de Pilha ───────────────────────────────────
 
 function gerarAF() {
   const estados  = document.getElementById('estados').value.split(',').map(s => s.trim()).filter(Boolean);
   const inicial  = document.getElementById('inicial').value.trim();
   const finais   = document.getElementById('finais').value.split(',').map(s => s.trim()).filter(Boolean);
+  const zInicial = document.getElementById('pilha-inicial').value.trim() || 'Z';
   const linhas   = document.getElementById('transicoes').value.trim().split('\n');
 
-  // Montar tabela de transições
   const trans = {};
   for (const linha of linhas) {
     const partes = linha.split(',').map(s => s.trim());
-    if (partes.length < 3) continue;
-    const [de, sim, para] = partes;
-    if (!trans[de]) trans[de] = {};
-    trans[de][sim] = para;
+    if (partes.length < 5) continue;
+    
+    // Formato PDA: de, simLido, topoPilha, para, empilhar
+    const [de, sim, topo, para, empilha] = partes;
+    if (!trans[de]) trans[de] = [];
+    trans[de].push({ sim, topo, para, empilha });
   }
 
   if (!estados.length || !inicial) {
@@ -28,7 +27,7 @@ function gerarAF() {
     return;
   }
 
-  af = { estados, inicial, finais, trans };
+  af = { estados, inicial, finais, zInicial, trans };
 
   document.getElementById('secao-af').hidden    = false;
   document.getElementById('secao-teste').hidden = false;
@@ -37,9 +36,9 @@ function gerarAF() {
   desenhar();
 }
 
-// ─── Canvas ──────────────────────────────────────────────
+// ─── Canvas e Desenho ────────────────────────────────────
 
-const R = 28; // raio dos círculos
+const R = 32; 
 
 function posicionarNos() {
   const canvas = document.getElementById('canvas');
@@ -47,7 +46,6 @@ function posicionarNos() {
   const n = af.estados.length;
 
   nos = af.estados.map((id, i) => {
-    // Layout em círculo
     const angulo = (2 * Math.PI * i / n) - Math.PI / 2;
     const raio   = Math.min(W, H) * 0.35;
     return {
@@ -58,8 +56,7 @@ function posicionarNos() {
     };
   });
 
-  // Para poucos estados, layout em linha
-  if (n <= 4) {
+  if (n <= 5) {
     nos.forEach((no, i) => {
       no.x = (W / (n + 1)) * (i + 1);
       no.y = H / 2;
@@ -76,14 +73,20 @@ function desenhar() {
   const ctx    = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Desenha transições
-  for (const [de, mapa] of Object.entries(af.trans)) {
-    for (const [sim, para] of Object.entries(mapa)) {
-      desenharAresta(ctx, de, para, sim);
+  // Agrupar transições entre os mesmos nós para evitar sobreposição de linhas
+  const arestas = {};
+  for (const [de, lista] of Object.entries(af.trans)) {
+    for (const t of lista) {
+      const key = de + "->" + t.para;
+      if (!arestas[key]) arestas[key] = { de, para: t.para, labels: [] };
+      arestas[key].labels.push(`${t.sim}, ${t.topo}/${t.empilha}`);
     }
   }
 
-  // Desenha estados
+  for (const edge of Object.values(arestas)) {
+    desenharAresta(ctx, edge.de, edge.para, edge.labels.join(' | '));
+  }
+
   for (const n of nos) {
     desenharNo(ctx, n);
   }
@@ -94,7 +97,6 @@ function desenharNo(ctx, n) {
   const isFinal   = af.finais.includes(id);
   const isInicial = id === af.inicial;
 
-  // Anel duplo para estados finais
   if (isFinal) {
     ctx.beginPath();
     ctx.arc(x, y, R + 6, 0, 2 * Math.PI);
@@ -103,7 +105,6 @@ function desenharNo(ctx, n) {
     ctx.stroke();
   }
 
-  // Círculo principal
   ctx.beginPath();
   ctx.arc(x, y, R, 0, 2 * Math.PI);
   ctx.fillStyle   = ativo ? '#e8eaf6' : '#fff';
@@ -112,7 +113,6 @@ function desenharNo(ctx, n) {
   ctx.fill();
   ctx.stroke();
 
-  // Seta de entrada no estado inicial
   if (isInicial) {
     ctx.beginPath();
     ctx.moveTo(x - R - 28, y);
@@ -123,20 +123,18 @@ function desenharNo(ctx, n) {
     seta(ctx, x - R - 2, y, 0, '#999');
   }
 
-  // Nome do estado
   ctx.fillStyle    = ativo ? '#3f51b5' : '#222';
-  ctx.font         = '13px Arial';
+  ctx.font         = '14px Arial';
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(id, x, y);
 }
 
-function desenharAresta(ctx, deId, paraId, simbolo) {
+function desenharAresta(ctx, deId, paraId, rotulo) {
   const de   = no(deId);
   const para = no(paraId);
   if (!de || !para) return;
 
-  // Verifica se a aresta está ativa na simulação
   const ativa = de.ativo && para.ativo;
   const cor   = ativa ? '#3f51b5' : '#bbb';
 
@@ -144,26 +142,27 @@ function desenharAresta(ctx, deId, paraId, simbolo) {
   ctx.fillStyle   = cor;
   ctx.lineWidth   = ativa ? 2 : 1.3;
 
-  // Self-loop
   if (deId === paraId) {
     ctx.beginPath();
-    ctx.arc(de.x, de.y - R - 18, 18, 0, 2 * Math.PI);
+    ctx.arc(de.x, de.y - R - 20, 20, 0, 2 * Math.PI);
     ctx.stroke();
     seta(ctx, de.x, de.y - R - 2, -Math.PI / 2, cor);
     ctx.fillStyle = '#555';
-    ctx.font = '12px monospace';
+    ctx.font = '11px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(simbolo, de.x, de.y - R - 42);
+    ctx.fillText(rotulo, de.x, de.y - R - 48);
     return;
   }
-
-  // Curva se houver aresta nos dois sentidos
-  const temInverso = af.trans[paraId]?.[simbolo] === deId;
-  const curva = temInverso ? 30 : 0;
 
   const dx = para.x - de.x, dy = para.y - de.y;
   const d  = Math.sqrt(dx * dx + dy * dy);
   const nx = -dy / d, ny = dx / d;
+
+  let curva = 0;
+  // Verifica se existe aresta de volta
+  if (af.trans[paraId] && af.trans[paraId].some(t => t.para === deId)) {
+      curva = 35;
+  }
 
   const cpx = (de.x + para.x) / 2 + nx * curva;
   const cpy = (de.y + para.y) / 2 + ny * curva;
@@ -188,17 +187,16 @@ function desenharAresta(ctx, deId, paraId, simbolo) {
 
   seta(ctx, ex, ey, Math.atan2(ey - cpy, ex - cpx), cor);
 
-  // Label no meio
   const lx = curva ? cpx + nx * 14 : (sx + ex) / 2 + nx * 12;
   const ly = curva ? cpy + ny * 14 : (sy + ey) / 2 + ny * 12;
   ctx.fillStyle = '#444';
-  ctx.font = '12px monospace';
+  ctx.font = '11px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText(simbolo, lx, ly);
+  ctx.fillText(rotulo, lx, ly);
 }
 
 function seta(ctx, x, y, angulo, cor) {
-  const t = 9;
+  const t = 10;
   ctx.save();
   ctx.fillStyle = cor;
   ctx.translate(x, y);
@@ -212,10 +210,8 @@ function seta(ctx, x, y, angulo, cor) {
   ctx.restore();
 }
 
-// ─── Arrastar estados ────────────────────────────────────
-
+// Interatividade Canvas
 const canvas = document.getElementById('canvas');
-
 canvas.addEventListener('mousedown', e => {
   const rect = canvas.getBoundingClientRect();
   const mx = e.clientX - rect.left;
@@ -229,7 +225,6 @@ canvas.addEventListener('mousedown', e => {
     }
   }
 });
-
 canvas.addEventListener('mousemove', e => {
   if (!arrastando) return;
   const rect = canvas.getBoundingClientRect();
@@ -237,69 +232,141 @@ canvas.addEventListener('mousemove', e => {
   arrastando.y = e.clientY - rect.top  - offY;
   desenhar();
 });
-
 canvas.addEventListener('mouseup',    () => arrastando = null);
 canvas.addEventListener('mouseleave', () => arrastando = null);
 
-// ─── Testar palavra ──────────────────────────────────────
+
+// ─── Testar Palavra e Pilha (Simulação DFS) ──────────────
+
+function simularPDA(estadoAtual, palavraRestante, pilhaAtual, caminho, depth = 0) {
+  // Impede loops infinitos em transições epsilon mal formuladas
+  if (depth > 500) return null;
+
+  // Aceitação por estado final ao terminar de ler a palavra
+  if (palavraRestante.length === 0 && af.finais.includes(estadoAtual)) {
+    return caminho; 
+  }
+
+  const transicoes = af.trans[estadoAtual] || [];
+
+  for (let t of transicoes) {
+    let { sim, topo, para, empilha } = t;
+    let consomeLetra = (sim !== '&' && sim !== 'ε');
+
+    // Validação 1: O símbolo lido bate?
+    if (consomeLetra && palavraRestante[0] !== sim) continue;
+    
+    // Validação 2: A pilha tá vazia quando não devia?
+    if (pilhaAtual.length === 0 && topo !== '&' && topo !== 'ε') continue;
+    
+    // Validação 3: O topo da pilha bate?
+    let topoPilha = pilhaAtual[pilhaAtual.length - 1];
+    if (topo !== '&' && topo !== 'ε' && topoPilha !== topo) continue;
+
+    // Prepara próximo passo
+    let novaPilha = [...pilhaAtual];
+    
+    // Desempilha
+    if (topo !== '&' && topo !== 'ε') {
+      novaPilha.pop();
+    }
+
+    // Empilha (insere de trás pra frente para que o primeiro caractere fique no topo)
+    if (empilha !== '&' && empilha !== 'ε') {
+      for (let i = empilha.length - 1; i >= 0; i--) {
+        novaPilha.push(empilha[i]);
+      }
+    }
+
+    let novaPalavra = consomeLetra ? palavraRestante.slice(1) : palavraRestante;
+    
+    let novoCaminho = [...caminho, { 
+      estado: para, 
+      simLido: consomeLetra ? sim : 'ε', 
+      pilha: [...novaPilha] 
+    }];
+
+    // Chamada recursiva
+    let resultado = simularPDA(para, novaPalavra, novaPilha, novoCaminho, depth + 1);
+    
+    if (resultado) return resultado; // Caminho de aceitação encontrado!
+  }
+
+  return null; // Nenhum caminho válido nesta ramificação
+}
+
+function atualizarPilhaVisual(pilhaArray) {
+  const divPilha = document.getElementById('pilha-visual');
+  divPilha.innerHTML = '';
+  
+  if (pilhaArray.length === 0) {
+    divPilha.innerHTML = '<div class="pilha-item vazio">Vazia</div>';
+    return;
+  }
+
+  // Renderiza do topo para a base
+  for (let i = pilhaArray.length - 1; i >= 0; i--) {
+    const el = document.createElement('div');
+    el.className = 'pilha-item' + (i === 0 ? ' fundo' : '');
+    el.textContent = pilhaArray[i];
+    divPilha.appendChild(el);
+  }
+}
 
 async function testar() {
   if (!af) return;
 
   const palavra = document.getElementById('palavra').value;
-  let estado    = af.inicial;
-  const passos  = [estado];
+  const pilhaInicial = [af.zInicial];
+  
+  // Caminho inicial
+  let inicio = [{ estado: af.inicial, simLido: '', pilha: [...pilhaInicial] }];
+  
+  // Roda o simulador para encontrar um caminho de sucesso
+  let caminhoAceito = simularPDA(af.inicial, palavra, pilhaInicial, inicio);
+  const aceita = caminhoAceito !== null;
 
-  for (const simbolo of palavra) {
-    const proximo = af.trans[estado]?.[simbolo];
-    if (!proximo) { passos.push(null); break; }
-    estado = proximo;
-    passos.push(estado);
-  }
-
-  const aceita = estado !== null && af.finais.includes(estado);
-
-  // Mostrar resultado
+  // Atualizar mensagens UI
   const div = document.getElementById('resultado');
   div.className   = aceita ? 'aceita' : 'rejeita';
   div.textContent = aceita
-    ? `✔  "${palavra || 'ε'}" foi ACEITA`
-    : `✘  "${palavra || 'ε'}" foi REJEITADA`;
+    ? `✔  "${palavra || 'ε'}" foi ACEITA!`
+    : `✘  "${palavra || 'ε'}" foi REJEITADA.`;
 
-  // Mostrar trace
   const trace = document.getElementById('trace');
   trace.innerHTML = '';
-  const chars = [''].concat([...palavra], [null]);
-  for (let i = 0; i < passos.length; i++) {
+
+  // Animação e rastro de execução
+  const caminhoAnimar = aceita ? caminhoAceito : inicio; // Se rejeitar, mostra só o inicial
+
+  for (let i = 0; i < caminhoAnimar.length; i++) {
+    const passo = caminhoAnimar[i];
+
     if (i > 0) {
       const seta = document.createElement('span');
       seta.className = 'seta';
-      seta.textContent = `─${[...palavra][i - 1]}→`;
+      seta.textContent = `─${passo.simLido}→`;
       trace.appendChild(seta);
     }
     const el = document.createElement('span');
-    el.className = 'passo' +
-      (passos[i] === null                          ? ' erro'   :
-       i === passos.length - 1 && aceita           ? ' aceito' :
-       i === passos.length - 1                     ? ' atual'  : '');
-    el.textContent = passos[i] ?? '✘';
+    el.className = 'passo' + (i === caminhoAnimar.length - 1 && aceita ? ' aceito' : ' atual');
+    el.textContent = passo.estado;
     trace.appendChild(el);
-  }
 
-  // Animar no canvas
-  for (const n of nos) n.ativo = false;
-  desenhar();
-
-  for (let i = 0; i < passos.length; i++) {
+    // Animar Canvas
     for (const n of nos) n.ativo = false;
-    const n = no(passos[i]);
-    if (n) n.ativo = true;
+    const noAtual = no(passo.estado);
+    if (noAtual) noAtual.ativo = true;
     desenhar();
-    await new Promise(r => setTimeout(r, 400));
+
+    // Animar Pilha
+    atualizarPilhaVisual(passo.pilha);
+
+    // Delay para vizualização
+    await new Promise(r => setTimeout(r, 600));
   }
 }
 
-// Enter para testar
 document.getElementById('palavra')?.addEventListener('keydown', e => {
   if (e.key === 'Enter') testar();
 });
