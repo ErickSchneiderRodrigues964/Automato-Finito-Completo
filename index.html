@@ -2,39 +2,52 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Autômato Finito</title>
+  <title>Autômato Finito com Pilha</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <h1>Autômato Finito</h1>
+  <h1>Autômato Finito com Pilha</h1>
 
   <section>
     <h2>1. Montar o Autômato</h2>
 
     <label>Estados (separados por vírgula):
-      <input type="text" id="estados" />
+      <input type="text" id="estados" placeholder="q0, q1, q2" />
     </label>
 
     <label>Estado inicial:
-      <input type="text" id="inicial"  />
+      <input type="text" id="inicial" placeholder="q0" />
     </label>
 
     <label>Estados finais (separados por vírgula):
-      <input type="text" id="finais"  />
+      <input type="text" id="finais" placeholder="q2" />
+    </label>
+    
+    <label>Símbolo Inicial da Pilha:
+      <input type="text" id="pilha-inicial" value="Z" />
     </label>
 
-    <label>Transições (uma por linha, formato: <code>estado,símbolo,destino</code>):
-      <textarea id="transicoes" rows="6"></textarea>
+    <label>Transições (uma por linha, formato: <code>estado, símbolo_lido, topo_pilha, destino, empilhar</code>):
+      <br><small>Dica: Use <b>&</b> para representar epsilon (movimento vazio ou não empilhar nada). Ex: <code>q0, a, Z, q0, AZ</code></small>
+      <textarea id="transicoes" rows="7" placeholder="q0, a, Z, q0, AZ&#10;q0, a, A, q0, AA&#10;q0, b, A, q1, &&#10;q1, b, A, q1, &&#10;q1, &, Z, q2, Z"></textarea>
     </label>
 
     <button onclick="gerarAF()">Gerar Autômato</button>
   </section>
 
-
   <section id="secao-af" hidden>
     <h2>2. Autômato</h2>
-    <canvas id="canvas" width="700" height="320"></canvas>
+    <div class="visual-container">
+      <canvas id="canvas" width="600" height="320"></canvas>
+      
+      <div id="pilha-container">
+        <h3>Estado da Pilha</h3>
+        <div id="pilha-visual">
+          <div class="pilha-item fundo">Z</div>
+        </div>
+      </div>
+    </div>
     <p class="legenda">⬤ normal &nbsp;|&nbsp; ◎ final &nbsp;|&nbsp; → inicial &nbsp;|&nbsp; arraste os estados</p>
   </section>
 
@@ -42,7 +55,7 @@
     <h2>3. Testar Palavra</h2>
 
     <label>Palavra:
-      <input type="text" id="palavra" />
+      <input type="text" id="palavra" placeholder="Ex: aabb" />
     </label>
 
     <button onclick="testar()">Testar</button>
